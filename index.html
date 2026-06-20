@@ -170,7 +170,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 /* Groups grid */
 .groups-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -198,7 +198,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 
 /* Standings table */
 .standings-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.standings { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.standings { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 0.8rem; }
 .standings thead { background: var(--card2); }
 /* Sticky team column — needs opaque bg so scrolling cells don't bleed through */
 .standings th.left { position: sticky; left: 0; z-index: 2; background: var(--card2); }
