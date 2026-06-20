@@ -84,7 +84,6 @@ html.light .ko-team-name input              { color: var(--text); }
 html.light header h1                        { color: #ffffff; }
 html.light .group-header h2                 { color: #ffffff; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { overflow-x: hidden; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
 /* Header */
@@ -177,7 +176,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 }
 
 /* Group card */
-.group-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow-x: clip; }
+.group-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow-x: clip; min-width: 0; }
 .group-header {
   background: var(--group-header-grad);
   padding: 0.65rem 1rem;
