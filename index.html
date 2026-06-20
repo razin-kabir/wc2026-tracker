@@ -1373,7 +1373,7 @@ function isDaytime() {
   const now = new Date();
   if (_sunTimes) return now >= _sunTimes.sunrise && now < _sunTimes.sunset;
   const h = now.getHours();
-  return h >= 7 && h < 21; // fallback if location unavailable
+  return h >= 7 && h < 19; // fallback if location unavailable
 }
 
 function applyTheme(mode, isAuto) {
@@ -1395,17 +1395,24 @@ function applyTheme(mode, isAuto) {
 function toggleTheme() {
   const isLight = document.documentElement.classList.contains('light');
   const next = isLight ? 'dark' : 'light';
+  // Save override alongside the current daytime state so we can detect crossovers
   localStorage.setItem('wc2026_theme', next);
+  localStorage.setItem('wc2026_theme_day', isDaytime() ? '1' : '0');
   applyTheme(next, false);
 }
 
 async function initTheme() {
+  // Clear overrides saved before crossover-tracking was added (no _day companion)
+  if (localStorage.getItem('wc2026_theme') && !localStorage.getItem('wc2026_theme_day')) {
+    localStorage.removeItem('wc2026_theme');
+  }
+
   // Silent IP geolocation — no browser permission prompt needed
   try {
     const r = await fetch('https://ipapi.co/json/');
     const d = await r.json();
     if (d.latitude && d.longitude) {
-      _sunTimes  = calcSunTimes(d.latitude, d.longitude);
+      _sunTimes   = calcSunTimes(d.latitude, d.longitude);
       _usingSolar = !!_sunTimes;
     }
   } catch (_) {}
@@ -1417,8 +1424,17 @@ async function initTheme() {
     applyTheme(isDaytime() ? 'light' : 'dark', true);
   }
 
-  // Re-evaluate every minute so sunrise/sunset crossovers apply live
+  // Re-evaluate every minute; clear manual override when day/night has flipped
   setInterval(() => {
+    const saved = localStorage.getItem('wc2026_theme');
+    if (saved) {
+      const wasDay = localStorage.getItem('wc2026_theme_day') === '1';
+      // If daytime status has changed since the override was set, hand back to auto
+      if (wasDay !== isDaytime()) {
+        localStorage.removeItem('wc2026_theme');
+        localStorage.removeItem('wc2026_theme_day');
+      }
+    }
     if (!localStorage.getItem('wc2026_theme')) {
       applyTheme(isDaytime() ? 'light' : 'dark', true);
     }
