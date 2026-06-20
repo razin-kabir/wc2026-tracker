@@ -17,13 +17,40 @@
   --green: #27ae60;
   --orange: #e67e22;
   --border: #252545;
+  --header-grad: linear-gradient(135deg, #8b0020 0%, var(--secondary) 100%);
+  --group-header-grad: linear-gradient(90deg, #002060, #003a8c);
+  --champion-grad: linear-gradient(135deg, #1a1400, #2a2000);
+  --score-focus-bg: #1a1a35;
+  --toggle-bg: rgba(255,255,255,0.15);
+  --toggle-color: rgba(255,255,255,0.9);
 }
+html.light {
+  --bg: #f0f2f7;
+  --card: #ffffff;
+  --card2: #e8ebf2;
+  --text: #1a1a2e;
+  --muted: #6b7280;
+  --border: #d1d5e0;
+  --header-grad: linear-gradient(135deg, #a80025 0%, #003f87 100%);
+  --group-header-grad: linear-gradient(90deg, #003a8c, #0050b8);
+  --champion-grad: linear-gradient(135deg, #fef9e7, #fef3c7);
+  --score-focus-bg: #f8faff;
+  --toggle-bg: rgba(0,0,0,0.12);
+  --toggle-color: rgba(255,255,255,0.95);
+}
+html.light .pos-4 { background: #d1d5e0; color: #4b5563; }
+html.light .standings tr.q1 { background: rgba(0,130,60,0.08); }
+html.light .standings tr.q2 { background: rgba(0,100,50,0.05); }
+html.light .standings tr.third { background: rgba(230,126,34,0.07); }
+html.light .ko-team-row.winner { background: rgba(39,174,96,0.10); }
+html.light .champion-banner h2 { color: #6b5900; }
+html.light .ko-team-name input { color: var(--text); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
 /* Header */
 header {
-  background: linear-gradient(135deg, #8b0020 0%, var(--secondary) 100%);
+  background: var(--header-grad);
   padding: 1.25rem 2rem;
   display: flex;
   align-items: center;
@@ -113,7 +140,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 /* Group card */
 .group-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
 .group-header {
-  background: linear-gradient(90deg, #002060, #003a8c);
+  background: var(--group-header-grad);
   padding: 0.65rem 1rem;
   display: flex;
   align-items: center;
@@ -192,7 +219,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 }
 .score-input::-webkit-inner-spin-button,
 .score-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-.score-input:focus { outline: none; border-color: var(--accent); background: #1a1a35; }
+.score-input:focus { outline: none; border-color: var(--accent); background: var(--score-focus-bg); }
 .score-sep { color: var(--muted); font-size: 0.75rem; font-weight: 700; }
 .md-tag {
   font-size: 0.6rem; color: var(--muted);
@@ -299,7 +326,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
   grid-column: 1 / -1;
   text-align: center;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #1a1400, #2a2000);
+  background: var(--champion-grad);
   border: 2px solid var(--accent);
   border-radius: 12px;
   margin-top: 1rem;
@@ -307,6 +334,40 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 .champion-banner .trophy { font-size: 3rem; margin-bottom: 0.5rem; }
 .champion-banner h2 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
 .champion-banner .champion-name { font-size: 2rem; font-weight: 800; color: var(--accent); margin-top: 0.25rem; }
+
+/* Theme toggle */
+.theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.theme-toggle-btn {
+  background: var(--toggle-bg);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: var(--toggle-color);
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.theme-toggle-btn:hover { background: rgba(255,255,255,0.25); }
+.auto-badge {
+  font-size: 0.6rem;
+  background: rgba(255,215,0,0.25);
+  color: var(--accent);
+  border: 1px solid rgba(255,215,0,0.4);
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -331,7 +392,14 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
     <h1>FIFA World Cup 2026</h1>
     <p>Canada · Mexico · United States — Results Tracker</p>
   </div>
-  <div class="header-badge">48 TEAMS · 12 GROUPS</div>
+  <div class="theme-toggle">
+    <div class="header-badge">48 TEAMS · 12 GROUPS</div>
+    <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel">Dark</span>
+    </button>
+    <span class="auto-badge" id="autoBadge">AUTO</span>
+  </div>
 </header>
 
 <nav class="stage-nav" id="stageNav">
@@ -1221,8 +1289,51 @@ function resetAll() {
 }
 
 // ══════════════════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════════════════
+// Day = light (07:00–20:59), Night = dark (21:00–06:59)
+function autoTheme() {
+  const h = new Date().getHours();
+  return (h >= 7 && h < 21) ? 'light' : 'dark';
+}
+
+function applyTheme(mode, isAuto) {
+  document.documentElement.classList.toggle('light', mode === 'light');
+  const icon  = document.getElementById('themeIcon');
+  const label = document.getElementById('themeLabel');
+  const badge = document.getElementById('autoBadge');
+  if (icon)  icon.textContent  = mode === 'light' ? '☀️' : '🌙';
+  if (label) label.textContent = mode === 'light' ? 'Light' : 'Dark';
+  if (badge) badge.style.opacity = isAuto ? '1' : '0.25';
+}
+
+function toggleTheme() {
+  // Manual override — flip current mode and save preference
+  const isLight = document.documentElement.classList.contains('light');
+  const next = isLight ? 'dark' : 'light';
+  localStorage.setItem('wc2026_theme', next);
+  applyTheme(next, false);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('wc2026_theme');
+  if (saved) {
+    applyTheme(saved, false);
+  } else {
+    applyTheme(autoTheme(), true);
+  }
+  // Re-check auto theme every minute in case day/night crosses while page is open
+  setInterval(() => {
+    if (!localStorage.getItem('wc2026_theme')) {
+      applyTheme(autoTheme(), true);
+    }
+  }, 60000);
+}
+
+// ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+initTheme();
 load();
 renderGroups();
 </script>
