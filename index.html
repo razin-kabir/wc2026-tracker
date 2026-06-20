@@ -38,13 +38,47 @@ html.light {
   --toggle-bg: rgba(0,0,0,0.12);
   --toggle-color: rgba(255,255,255,0.95);
 }
-html.light .pos-4 { background: #d1d5e0; color: #4b5563; }
-html.light .standings tr.q1 { background: rgba(0,130,60,0.08); }
-html.light .standings tr.q2 { background: rgba(0,100,50,0.05); }
-html.light .standings tr.third { background: rgba(230,126,34,0.07); }
-html.light .ko-team-row.winner { background: rgba(39,174,96,0.10); }
-html.light .champion-banner h2 { color: #6b5900; }
-html.light .ko-team-name input { color: var(--text); }
+
+/* ── Light mode contrast fixes ──────────────────────────────────────────────
+   Gold (#ffd700) as text on white is near-invisible (~1.7:1).
+   Bright greens/reds are similarly washed out on light backgrounds.
+   Each override targets only the text/border use, not decorative fills.     */
+
+/* Gold accent → dark amber on light bg */
+html.light .pts-cell                        { color: #92700a; }
+html.light .third-stat                      { color: #92700a; }
+html.light .ko-header h2                    { color: #7a5c00; }
+html.light .stage-nav button.active         { color: #7a5c00; border-bottom-color: #7a5c00; }
+html.light .champion-banner .champion-name  { color: #7a5c00; }
+html.light .champion-banner h2              { color: #78591a; }
+
+/* Bright green → deep green */
+html.light .gd-pos                          { color: #15803d; }
+html.light .info-text.ok                    { color: #15803d; }
+html.light .q-tag                           { background: rgba(21,128,61,0.12); color: #166534; }
+html.light .ko-team-row.winner              { background: rgba(21,128,61,0.09); }
+html.light .ko-team-row.winner .ko-team-name{ color: #15803d; }
+html.light .standings tr.q1                 { background: rgba(0,130,60,0.07); }
+html.light .standings tr.q2                 { background: rgba(0,100,50,0.04); }
+
+/* Pastel red → deep red */
+html.light .gd-neg                          { color: #b91c1c; }
+html.light .fp-neg                          { color: #b91c1c; }
+html.light .info-text.err                   { color: #b91c1c; }
+
+/* Orange → dark amber-brown */
+html.light .third-panel h3                  { color: #92400e; }
+html.light .t-tag                           { background: rgba(146,64,14,0.10); color: #92400e; }
+html.light .standings tr.third              { background: rgba(146,64,14,0.06); }
+
+/* ko-sep uses --border which is very faint on white */
+html.light .ko-sep                          { color: var(--muted); }
+
+/* pos-4 dark badge → light-mode equivalent */
+html.light .pos-4                           { background: #d1d5e0; color: #374151; }
+
+/* KO team name input inherits correct color */
+html.light .ko-team-name input              { color: var(--text); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
