@@ -426,7 +426,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 <body>
 
 <header>
-  <img class="header-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/08/2026_FIFA_World_Cup_emblem_%28dark_mode%29.svg" alt="FIFA World Cup 2026">
+  <img id="headerLogo" class="header-icon" src="https://upload.wikimedia.org/wikipedia/commons/0/08/2026_FIFA_World_Cup_emblem_%28dark_mode%29.svg" alt="FIFA World Cup 2026">
   <div>
     <h1>FIFA World Cup 2026</h1>
     <p>Canada · Mexico · United States — Results Tracker</p>
@@ -1366,11 +1366,16 @@ function isDaytime() {
   return h >= 7 && h < 21; // fallback if location unavailable
 }
 
+const LOGO_DARK  = 'https://upload.wikimedia.org/wikipedia/commons/0/08/2026_FIFA_World_Cup_emblem_%28dark_mode%29.svg';
+const LOGO_LIGHT = 'https://upload.wikimedia.org/wikipedia/commons/1/17/2026_FIFA_World_Cup_emblem.svg';
+
 function applyTheme(mode, isAuto) {
   document.documentElement.classList.toggle('light', mode === 'light');
+  const logo  = document.getElementById('headerLogo');
   const icon  = document.getElementById('themeIcon');
   const label = document.getElementById('themeLabel');
   const badge = document.getElementById('autoBadge');
+  if (logo)  logo.src = mode === 'light' ? LOGO_LIGHT : LOGO_DARK;
   if (icon)  icon.textContent  = mode === 'light' ? '☀️' : '🌙';
   if (label) label.textContent = mode === 'light' ? 'Light' : 'Dark';
   if (badge) {
