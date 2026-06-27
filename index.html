@@ -251,11 +251,18 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 }
 .match-row:last-child { margin-bottom: 0; }
 .match-row .t-name {
-  flex: 1; font-size: 0.78rem;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; font-size: 0.78rem; display: flex; align-items: center; gap: 0.3rem; min-width: 0;
 }
-.match-row .t-name.home { text-align: right; }
-.match-row .t-name.away { text-align: left; }
+.match-row .t-name.home { justify-content: flex-end; }
+.match-row .t-name .tn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Circular flag icon */
+.flag-circle {
+  width: 1.15rem; height: 1.15rem;
+  border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; display: inline-block;
+  vertical-align: middle;
+}
 .score-input {
   width: 2.1rem; height: 1.9rem; text-align: center;
   background: var(--card); border: 1px solid var(--border);
@@ -438,9 +445,9 @@ html.light .bm-t.bm-w .bm-n { color: #15803d; }
 .ko-team-row:last-of-type { border-bottom: none; }
 .ko-team-row.winner { background: rgba(39,174,96,0.12); }
 .ko-team-row.winner .ko-team-name { color: #4ade80; font-weight: 600; }
-.ko-team-name { flex: 1; }
+.ko-team-name { flex: 1; display: flex; align-items: center; gap: 0.35rem; }
 .ko-team-name input {
-  width: 100%; background: none; border: none; outline: none;
+  flex: 1; min-width: 0; background: none; border: none; outline: none;
   color: inherit; font: inherit; cursor: text;
 }
 .ko-team-name input::placeholder { color: var(--muted); font-style: italic; }
@@ -797,6 +804,28 @@ const BRACKET_SOURCES = {
   ],
 };
 
+// ISO 3166-1 alpha-2 codes (+ subdivision codes) for all 48 WC 2026 teams
+const FLAG_CODES = {
+  'Mexico':'mx','South Korea':'kr','South Africa':'za','Czechia':'cz',
+  'Canada':'ca','Switzerland':'ch','Qatar':'qa','Bosnia & Herzegovina':'ba',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'USA':'us','Australia':'au','Paraguay':'py','Türkiye':'tr',
+  'Germany':'de','Ecuador':'ec','Ivory Coast':'ci','Curaçao':'cw',
+  'Netherlands':'nl','Japan':'jp','Tunisia':'tn','Sweden':'se',
+  'Belgium':'be','Iran':'ir','Egypt':'eg','New Zealand':'nz',
+  'Spain':'es','Uruguay':'uy','Saudi Arabia':'sa','Cape Verde':'cv',
+  'France':'fr','Senegal':'sn','Norway':'no','Iraq':'iq',
+  'Argentina':'ar','Austria':'at','Algeria':'dz','Jordan':'jo',
+  'Portugal':'pt','Colombia':'co','Uzbekistan':'uz','DR Congo':'cd',
+  'England':'gb-eng','Croatia':'hr','Panama':'pa','Ghana':'gh',
+};
+
+function flagHtml(team) {
+  const code = FLAG_CODES[team];
+  if (!code) return '';
+  return `<img class="flag-circle" src="https://flagcdn.com/w40/${code}.png" alt="" loading="lazy">`;
+}
+
 // ══════════════════════════════════════════════════════════
 // STATE & STORAGE
 // ══════════════════════════════════════════════════════════
@@ -955,6 +984,7 @@ function renderGroups() {
         <td class="left">
           <div class="team-cell">
             <span class="pos-badge pos-${pos+1}">${pos+1}</span>
+            ${flagHtml(s.t)}
             <span>${s.t}</span>${tag}
           </div>
         </td>
@@ -972,13 +1002,13 @@ function renderGroups() {
       const r = S.groups[key] || ['',''];
       matchRows += `<div class="match-row">
         <span class="md-tag">${md}</span>
-        <span class="t-name home" title="${teams[i1]}">${teams[i1]}</span>
+        <span class="t-name home" title="${teams[i1]}">${flagHtml(teams[i1])}<span class="tn">${teams[i1]}</span></span>
         <input class="score-input" type="number" min="0" max="99" value="${r[0]}"
           oninput="setGroupScore('${g}',${idx},0,this.value)">
         <span class="score-sep">–</span>
         <input class="score-input" type="number" min="0" max="99" value="${r[1]}"
           oninput="setGroupScore('${g}',${idx},1,this.value)">
-        <span class="t-name away" title="${teams[i2]}">${teams[i2]}</span>
+        <span class="t-name away" title="${teams[i2]}">${flagHtml(teams[i2])}<span class="tn">${teams[i2]}</span></span>
       </div>`;
     });
 
@@ -1080,6 +1110,7 @@ function renderKO(stage, labels) {
       <div class="ko-match-label">${label}</div>
       <div class="ko-team-row ${w1 ? 'winner' : ''}">
         <div class="ko-team-name">
+          ${flagHtml(m.t1)}
           <input value="${m.t1 || ''}" placeholder="Team 1"
             oninput="setKO('${stage}',${i},'t1',this.value)" onchange="setKO('${stage}',${i},'t1',this.value)">
         </div>
@@ -1089,6 +1120,7 @@ function renderKO(stage, labels) {
       </div>
       <div class="ko-team-row ${w2 ? 'winner' : ''}">
         <div class="ko-team-name">
+          ${flagHtml(m.t2)}
           <input value="${m.t2 || ''}" placeholder="Team 2"
             oninput="setKO('${stage}',${i},'t2',this.value)" onchange="setKO('${stage}',${i},'t2',this.value)">
         </div>
@@ -1140,6 +1172,7 @@ function renderFinal() {
       <div class="ko-match-label">${label}</div>
       <div class="ko-team-row ${w1 ? 'winner' : ''}">
         <div class="ko-team-name">
+          ${flagHtml(m.t1)}
           <input value="${m.t1 || ''}" placeholder="Team 1"
             oninput="setKO('${key}',${idx},'t1',this.value)" onchange="setKO('${key}',${idx},'t1',this.value)">
         </div>
@@ -1149,6 +1182,7 @@ function renderFinal() {
       </div>
       <div class="ko-team-row ${w2 ? 'winner' : ''}">
         <div class="ko-team-name">
+          ${flagHtml(m.t2)}
           <input value="${m.t2 || ''}" placeholder="Team 2"
             oninput="setKO('${key}',${idx},'t2',this.value)" onchange="setKO('${key}',${idx},'t2',this.value)">
         </div>
@@ -1202,10 +1236,12 @@ function renderBracket() {
     return `<div class="bm">
       <div class="bm-hdr">${SHORT_LABELS[s](i)}</div>
       <div class="bm-t ${w1?'bm-w':''}">
+        ${flagHtml(m.t1)}
         <span class="bm-n">${m.t1 || '—'}</span>
         <span class="bm-s">${sc1}</span>
       </div>
       <div class="bm-t ${w2?'bm-w':''}">
+        ${flagHtml(m.t2)}
         <span class="bm-n">${m.t2 || '—'}</span>
         <span class="bm-s">${sc2}</span>
       </div>
