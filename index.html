@@ -1002,7 +1002,7 @@ function renderGroups() {
       const r = S.groups[key] || ['',''];
       matchRows += `<div class="match-row">
         <span class="md-tag">${md}</span>
-        <span class="t-name home" title="${teams[i1]}">${flagHtml(teams[i1])}<span class="tn">${teams[i1]}</span></span>
+        <span class="t-name home" title="${teams[i1]}"><span class="tn">${teams[i1]}</span>${flagHtml(teams[i1])}</span>
         <input class="score-input" type="number" min="0" max="99" value="${r[0]}"
           oninput="setGroupScore('${g}',${idx},0,this.value)">
         <span class="score-sep">–</span>
