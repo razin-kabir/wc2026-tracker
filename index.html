@@ -587,14 +587,14 @@ const R32_LABELS = [
 ];
 
 const R16_LABELS = [
-  'R32-1 W vs R32-3 W',    // R16-1  Jul 4
-  'R32-2 W vs R32-5 W',    // R16-2  Jul 4
-  'R32-4 W vs R32-6 W',    // R16-3  Jul 5
-  'R32-7 W vs R32-8 W',    // R16-4  Jul 5
-  'R32-11 W vs R32-12 W',  // R16-5  Jul 6
-  'R32-9 W vs R32-10 W',   // R16-6  Jul 6
-  'R32-13 W vs R32-15 W',  // R16-7  Jul 7
-  'R32-14 W vs R32-16 W',  // R16-8  Jul 7
+  'R32-4 W vs R32-7 W',    // R16-1  Jul 4  (1E/3rd vs 1I/3rd)
+  'R32-1 W vs R32-3 W',    // R16-2  Jul 4  (2A/2B vs 1F/2C)
+  'R32-2 W vs R32-5 W',    // R16-3  Jul 5  (1C/2F vs 2E/2I)
+  'R32-6 W vs R32-10 W',   // R16-4  Jul 5  (1A/3rd vs 1L/3rd)
+  'R32-11 W vs R32-12 W',  // R16-5  Jul 6  (2K/2L vs 1H/2J)
+  'R32-9 W vs R32-8 W',    // R16-6  Jul 6  (1D/3rd vs 1G/3rd)
+  'R32-15 W vs R32-14 W',  // R16-7  Jul 7  (1J/2H vs 2D/2G)
+  'R32-13 W vs R32-16 W',  // R16-8  Jul 7  (1B/3rd vs 1K/3rd)
 ];
 
 const QF_LABELS = [
@@ -622,13 +622,28 @@ const THIRD_SLOTS = {
   15: ['D','E','I','J','L'],
 };
 
+// Official FIFA 2026 WC 3rd-place slot assignment (Annex C of tournament regulations).
+// Maps group letter → R32 slot index (0-based) for the actual qualifying groups.
+const OFFICIAL_3RD_SLOT = {
+  'A':7, 'B':8, 'D':3, 'E':5, 'F':6, 'G':12, 'I':9, 'L':15,
+};
+
 // Bracket advancement: for each match (stage, idx), where winner (w) and loser (l) go
+// R32→R16 mapping verified against official FIFA bracket (Wikipedia/CBS Sports):
+//   R16-1 (idx 0): R32-4 vs R32-7  |  R16-2 (idx 1): R32-1 vs R32-3
+//   R16-3 (idx 2): R32-2 vs R32-5  |  R16-4 (idx 3): R32-6 vs R32-10
+//   R16-5 (idx 4): R32-11 vs R32-12 | R16-6 (idx 5): R32-9 vs R32-8
+//   R16-7 (idx 6): R32-15 vs R32-14 | R16-8 (idx 7): R32-13 vs R32-16
 const BRACKET_ADV = {
   r32: [
-    {w:['r16',0,'t1']}, {w:['r16',1,'t1']}, {w:['r16',0,'t2']}, {w:['r16',2,'t1']},
-    {w:['r16',1,'t2']}, {w:['r16',2,'t2']}, {w:['r16',3,'t1']}, {w:['r16',3,'t2']},
-    {w:['r16',5,'t1']}, {w:['r16',5,'t2']}, {w:['r16',4,'t1']}, {w:['r16',4,'t2']},
-    {w:['r16',6,'t1']}, {w:['r16',7,'t1']}, {w:['r16',6,'t2']}, {w:['r16',7,'t2']},
+    //  0:2A/2B       1:1C/2F       2:1F/2C       3:1E/3rd
+    {w:['r16',1,'t1']},{w:['r16',2,'t1']},{w:['r16',1,'t2']},{w:['r16',0,'t1']},
+    //  4:2E/2I       5:1A/3rd      6:1I/3rd      7:1G/3rd
+    {w:['r16',2,'t2']},{w:['r16',3,'t1']},{w:['r16',0,'t2']},{w:['r16',5,'t2']},
+    //  8:1D/3rd      9:1L/3rd      10:2K/2L      11:1H/2J
+    {w:['r16',5,'t1']},{w:['r16',3,'t2']},{w:['r16',4,'t1']},{w:['r16',4,'t2']},
+    //  12:1B/3rd     13:2D/2G      14:1J/2H      15:1K/3rd
+    {w:['r16',7,'t1']},{w:['r16',6,'t2']},{w:['r16',6,'t1']},{w:['r16',7,'t2']},
   ],
   r16: [
     {w:['qf',0,'t1']}, {w:['qf',0,'t2']}, {w:['qf',2,'t1']}, {w:['qf',2,'t2']},
@@ -1104,38 +1119,22 @@ function getStageLabels(stage) {
 function assign3rdToSlots(thirds) {
   // thirds: array of {t, g} — the best 3rd-place teams in rank order
   // Returns an object: {slotIndex: teamName}
-  const qualMap = {};  // group letter → team name
-  thirds.forEach(x => { if (x?.g) qualMap[x.g] = x.t; });
-
-  const slots = [3, 5, 6, 7, 8, 9, 12, 15];
   const assignment = {};
-  const usedGroups = new Set();
-
-  function solve(remaining) {
-    if (!remaining.length) return true;
-    // MRV: process slot with fewest eligible qualifying teams first
-    const sorted = [...remaining].sort((a, b) => {
-      const optA = THIRD_SLOTS[a].filter(g => qualMap[g] && !usedGroups.has(g)).length;
-      const optB = THIRD_SLOTS[b].filter(g => qualMap[g] && !usedGroups.has(g)).length;
-      return optA - optB;
-    });
-    const slot = sorted[0];
-    const rest = sorted.slice(1);
-    for (const g of THIRD_SLOTS[slot]) {
-      if (qualMap[g] && !usedGroups.has(g)) {
-        assignment[slot] = qualMap[g];
-        usedGroups.add(g);
-        if (solve(rest)) return true;
-        delete assignment[slot];
-        usedGroups.delete(g);
+  for (const x of thirds) {
+    if (!x?.g) continue;
+    const slot = OFFICIAL_3RD_SLOT[x.g];
+    if (slot !== undefined) {
+      assignment[slot] = x.t;
+    } else {
+      // Fallback for groups not in the official table: find first eligible open slot
+      const slots = [3, 5, 6, 7, 8, 9, 12, 15];
+      for (const s of slots) {
+        if (!assignment[s] && THIRD_SLOTS[s].includes(x.g)) {
+          assignment[s] = x.t;
+          break;
+        }
       }
     }
-    return false;
-  }
-
-  if (!solve(slots)) {
-    // Fallback: best-effort greedy (shouldn't happen with a valid FIFA bracket config)
-    slots.forEach(s => { if (!assignment[s]) assignment[s] = '3rd TBD'; });
   }
   return assignment;
 }
