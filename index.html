@@ -168,6 +168,26 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 .info-text.err { color: #f87171; }
 
 /* Groups grid */
+.group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+.gf-btn {
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.gf-btn:hover { background: var(--card2); }
+.gf-btn.active { background: #003f87; color: #fff; border-color: #003f87; }
+
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
@@ -576,6 +596,21 @@ html.light .bm-t.bm-w .bm-n { color: #15803d; }
       <button class="btn btn-blue" onclick="autoFillKnockout()">Auto-fill Knockout →</button>
       <button class="btn btn-ghost" onclick="resetAll()">Reset All Results</button>
       <span class="info-text" id="espnStatus">Results saved automatically in your browser</span>
+    </div>
+    <div class="group-filter" id="groupFilter">
+      <button class="gf-btn active" onclick="filterGroup('all',this)">All</button>
+      <button class="gf-btn" onclick="filterGroup('A',this)">A</button>
+      <button class="gf-btn" onclick="filterGroup('B',this)">B</button>
+      <button class="gf-btn" onclick="filterGroup('C',this)">C</button>
+      <button class="gf-btn" onclick="filterGroup('D',this)">D</button>
+      <button class="gf-btn" onclick="filterGroup('E',this)">E</button>
+      <button class="gf-btn" onclick="filterGroup('F',this)">F</button>
+      <button class="gf-btn" onclick="filterGroup('G',this)">G</button>
+      <button class="gf-btn" onclick="filterGroup('H',this)">H</button>
+      <button class="gf-btn" onclick="filterGroup('I',this)">I</button>
+      <button class="gf-btn" onclick="filterGroup('J',this)">J</button>
+      <button class="gf-btn" onclick="filterGroup('K',this)">K</button>
+      <button class="gf-btn" onclick="filterGroup('L',this)">L</button>
     </div>
     <div class="groups-grid" id="groupsGrid"></div>
     <div class="third-panel" id="thirdPanel">
@@ -1032,7 +1067,7 @@ function renderGroups() {
       </tr>`;
     });
 
-    html += `<div class="group-card">
+    html += `<div class="group-card" id="gc-${g}" data-group="${g}">
       <div class="group-header">
         <div class="group-letter">${g}</div>
         <h2>Group ${g}</h2>
@@ -1069,7 +1104,23 @@ function renderGroups() {
   }
 
   grid.innerHTML = html;
+  // Re-apply any active group filter
+  const activeBtn = document.querySelector('.gf-btn.active');
+  const activeGroup = activeBtn ? activeBtn.textContent.trim() : 'all';
+  if (activeGroup !== 'All' && activeGroup !== 'all') {
+    document.querySelectorAll('#groupsGrid .group-card').forEach(card => {
+      card.style.display = card.dataset.group === activeGroup ? '' : 'none';
+    });
+  }
   renderThirdPlace();
+}
+
+function filterGroup(g, btn) {
+  document.querySelectorAll('.gf-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('#groupsGrid .group-card').forEach(card => {
+    card.style.display = (g === 'all' || card.dataset.group === g) ? '' : 'none';
+  });
 }
 
 function renderThirdPlace() {
