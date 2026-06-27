@@ -364,6 +364,64 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
   .bracket-connector { display: none; }
   .bracket-pair { padding-right: 0; }
 }
+
+/* ── Full visual bracket board ───────────────────────────── */
+.bracket-board-wrap { overflow-x: auto; padding-bottom: 1rem; }
+.bracket-wrap { display: inline-flex; min-width: max-content; }
+/* Bracket tree node */
+.bn { display: flex; flex-direction: row; align-items: center; }
+.bn-kids { display: flex; flex-direction: column; gap: 0.75rem; }
+.bn-kid  { display: flex; align-items: stretch; }
+/* Bracket connector — "}" shape spanning child midpoints */
+.bn-conn { width: 1.25rem; align-self: stretch; position: relative; flex-shrink: 0; }
+.bn-conn::after {
+  content: '';
+  position: absolute;
+  top: 25%; bottom: 25%; left: 0; right: 0;
+  border-top: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-radius: 0 5px 5px 0;
+}
+/* Compact match card used in bracket view */
+.bm {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 160px;
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  align-self: center;
+}
+.bm-hdr {
+  background: var(--card2); padding: 0.22rem 0.5rem;
+  font-size: 0.6rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+.bm-t {
+  display: flex; align-items: center; gap: 0.3rem;
+  padding: 0.32rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.bm-t:last-of-type { border-bottom: none; }
+.bm-t.bm-w { background: rgba(39,174,96,0.12); }
+.bm-t.bm-w .bm-n { color: #4ade80; font-weight: 600; }
+.bm-n {
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bm-s { font-weight: 700; min-width: 1.2rem; text-align: right; color: var(--text); }
+/* Round column headers */
+.bracket-headers {
+  display: inline-flex; min-width: max-content; margin-bottom: 0.75rem;
+}
+.bracket-col-hdr {
+  text-align: center; font-size: 0.62rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+html.light .bm-t.bm-w .bm-n { color: #15803d; }
+
 .ko-match { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .ko-match-label {
   background: var(--card2); padding: 0.38rem 0.75rem;
@@ -499,6 +557,7 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
   <button onclick="showStage('qf')">Quarterfinals</button>
   <button onclick="showStage('sf')">Semifinals</button>
   <button onclick="showStage('final')">Final &amp; 3rd Place</button>
+  <button onclick="showStage('bracket')">Bracket</button>
 </nav>
 
 <div class="main">
@@ -565,6 +624,17 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
       <div class="trophy">🏆</div>
       <h2>World Cup 2026 Champions</h2>
       <div class="champion-name" id="championName"></div>
+    </div>
+  </div>
+
+  <!-- BRACKET OVERVIEW -->
+  <div id="sect-bracket" style="display:none">
+    <div class="ko-header">
+      <h2>Full Bracket</h2>
+      <p>Visual bracket overview · Edit scores in the individual round tabs</p>
+    </div>
+    <div class="bracket-board-wrap">
+      <div id="bracketBoard"></div>
     </div>
   </div>
 
@@ -710,6 +780,22 @@ const BRACKET_GROUPS = {
   sf:  [[0],                     [1]],
 };
 const BRACKET_HALF_SIZE = { r32: 4, r16: 2, qf: 1, sf: 1 };
+
+// Inverse bracket mapping: sources[stage][matchIdx] = [{s,i}, {s,i}]
+const BRACKET_SOURCES = {
+  final: [[{s:'sf', i:0},{s:'sf', i:1}]],
+  sf:  [[{s:'qf',i:0},{s:'qf',i:1}],[{s:'qf',i:2},{s:'qf',i:3}]],
+  qf:  [
+    [{s:'r16',i:0},{s:'r16',i:1}], [{s:'r16',i:4},{s:'r16',i:5}],
+    [{s:'r16',i:2},{s:'r16',i:3}], [{s:'r16',i:6},{s:'r16',i:7}],
+  ],
+  r16: [
+    [{s:'r32',i:3}, {s:'r32',i:6}],  [{s:'r32',i:0}, {s:'r32',i:2}],
+    [{s:'r32',i:1}, {s:'r32',i:4}],  [{s:'r32',i:5}, {s:'r32',i:9}],
+    [{s:'r32',i:10},{s:'r32',i:11}], [{s:'r32',i:8}, {s:'r32',i:7}],
+    [{s:'r32',i:14},{s:'r32',i:13}], [{s:'r32',i:12},{s:'r32',i:15}],
+  ],
+};
 
 // ══════════════════════════════════════════════════════════
 // STATE & STORAGE
@@ -1090,10 +1176,70 @@ function renderFinal() {
   else { banner.style.display = 'none'; }
 }
 
+function renderBracket() {
+  const board = document.getElementById('bracketBoard');
+  if (!board) return;
+
+  const SHORT_LABELS = {
+    r32:   i => `R32-${i+1}`,
+    r16:   i => `R16-${i+1}`,
+    qf:    i => `QF-${i+1}`,
+    sf:    i => `SF-${i+1}`,
+    final: () => 'Final',
+  };
+
+  function card(s, i) {
+    const m = (S.ko[s] || [])[i] || {};
+    const s1 = m.s1 !== '' ? parseInt(m.s1) : NaN;
+    const s2 = m.s2 !== '' ? parseInt(m.s2) : NaN;
+    const done = !isNaN(s1) && !isNaN(s2);
+    const tied = done && s1 === s2;
+    const p1 = parseInt(m.p1), p2 = parseInt(m.p2);
+    const w1 = done && (s1 > s2 || (tied && !isNaN(p1) && !isNaN(p2) && p1 > p2));
+    const w2 = done && (s2 > s1 || (tied && !isNaN(p1) && !isNaN(p2) && p2 > p1));
+    const sc1 = done ? String(m.s1) + (tied && !isNaN(p1) ? `<span style="font-size:0.65rem;color:var(--muted)">(${p1})</span>` : '') : '';
+    const sc2 = done ? String(m.s2) + (tied && !isNaN(p2) ? `<span style="font-size:0.65rem;color:var(--muted)">(${p2})</span>` : '') : '';
+    return `<div class="bm">
+      <div class="bm-hdr">${SHORT_LABELS[s](i)}</div>
+      <div class="bm-t ${w1?'bm-w':''}">
+        <span class="bm-n">${m.t1 || '—'}</span>
+        <span class="bm-s">${sc1}</span>
+      </div>
+      <div class="bm-t ${w2?'bm-w':''}">
+        <span class="bm-n">${m.t2 || '—'}</span>
+        <span class="bm-s">${sc2}</span>
+      </div>
+    </div>`;
+  }
+
+  function node(s, i) {
+    const srcs = BRACKET_SOURCES[s]?.[i];
+    if (!srcs) return `<div class="bn bn-leaf">${card(s,i)}</div>`;
+    const [a, b] = srcs;
+    return `<div class="bn">
+      <div class="bn-kids">
+        <div class="bn-kid">${node(a.s,a.i)}</div>
+        <div class="bn-kid">${node(b.s,b.i)}</div>
+      </div>
+      <div class="bn-conn"></div>
+      ${card(s,i)}
+    </div>`;
+  }
+
+  // Headers: each round column is 180px wide (160px card + 20px connector), except Final (160px)
+  const ROUND_NAMES = ['Round of 32','Round of 16','Quarter-finals','Semi-finals','Final'];
+  const headerHtml = ROUND_NAMES.map((name, i) =>
+    `<div class="bracket-col-hdr" style="width:${i < 4 ? 180 : 160}px">${name}</div>`
+  ).join('');
+
+  board.innerHTML = `<div class="bracket-headers" style="display:flex;gap:0">${headerHtml}</div>
+    <div class="bracket-wrap">${node('final',0)}</div>`;
+}
+
 // ══════════════════════════════════════════════════════════
 // STAGE NAVIGATION
 // ══════════════════════════════════════════════════════════
-const STAGES = ['groups','r32','r16','qf','sf','final'];
+const STAGES = ['groups','r32','r16','qf','sf','final','bracket'];
 
 function showStage(stage) {
   STAGES.forEach(s => {
@@ -1108,6 +1254,7 @@ function showStage(stage) {
 function renderStage(stage) {
   if (stage === 'groups') renderGroups();
   else if (stage === 'final') renderFinal();
+  else if (stage === 'bracket') renderBracket();
   else renderKO(stage, getStageLabels(stage));
 }
 
