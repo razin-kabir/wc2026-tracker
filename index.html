@@ -321,6 +321,49 @@ header p { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 0.15rem;
 .ko-header h2 { font-size: 1.1rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
 .ko-header p { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
 .ko-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+
+/* ── Bracket layout ─────────────────────────────────────── */
+.bracket-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 3rem;
+  align-items: start;
+}
+.bracket-half { display: flex; flex-direction: column; gap: 1.25rem; }
+.bracket-pair {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-right: 1.75rem;
+}
+/* "}" bracket connector: spans from midpoint of first card to midpoint of second */
+.bracket-connector {
+  position: absolute;
+  right: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 1.5rem;
+  border-top: 2px solid var(--border);
+  border-right: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  pointer-events: none;
+}
+.bracket-connector::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: calc(50% - 4px);
+  border-left: 6px solid var(--border);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+@media (max-width: 720px) {
+  .bracket-section { grid-template-columns: 1fr; }
+  .bracket-connector { display: none; }
+  .bracket-pair { padding-right: 0; }
+}
 .ko-match { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .ko-match-label {
   background: var(--card2); padding: 0.38rem 0.75rem;
@@ -658,6 +701,16 @@ const BRACKET_ADV = {
   ],
 };
 
+// Bracket pair groupings: which match indices feed into the same next-round slot.
+// First BRACKET_HALF_SIZE[stage] groups go in the left column; the rest in the right.
+const BRACKET_GROUPS = {
+  r32: [[3,6],[0,2],[1,4],[5,9],  [10,11],[8,7],[14,13],[12,15]],
+  r16: [[0,1],[4,5],              [2,3],[6,7]],
+  qf:  [[0,1],                   [2,3]],
+  sf:  [[0],                     [1]],
+};
+const BRACKET_HALF_SIZE = { r32: 4, r16: 2, qf: 1, sf: 1 };
+
 // ══════════════════════════════════════════════════════════
 // STATE & STORAGE
 // ══════════════════════════════════════════════════════════
@@ -923,13 +976,11 @@ function renderThirdPlace() {
 // RENDER: KNOCKOUT ROUNDS
 // ══════════════════════════════════════════════════════════
 function renderKO(stage, labels) {
-  const n = KO_COUNTS[stage];
   const grid = document.getElementById(`${stage}Grid`);
   if (!grid) return;
   const matches = S.ko[stage];
-  let html = '';
 
-  for (let i = 0; i < n; i++) {
+  function matchCard(i) {
     const m = matches[i] || {};
     const label = labels ? labels[i] : `Match ${i+1}`;
     const s1 = m.s1 !== '' ? parseInt(m.s1) : NaN;
@@ -937,25 +988,9 @@ function renderKO(stage, labels) {
     const done = !isNaN(s1) && !isNaN(s2);
     const tied = done && s1 === s2;
     const p1 = parseInt(m.p1), p2 = parseInt(m.p2);
-    let w1 = done && (s1 > s2 || (tied && !isNaN(p1) && !isNaN(p2) && p1 > p2));
-    let w2 = done && (s2 > s1 || (tied && !isNaN(p1) && !isNaN(p2) && p2 > p1));
-
-    const penSection = tied
-      ? `<div class="pen-section">
-          <span class="pen-label">(</span>
-          <input class="pen-input" type="number" min="0" max="99" value="${m.p1 ?? ''}" placeholder="?" title="Penalties"
-            oninput="setKO('${stage}',${i},'p1',this.value)">
-          <span class="pen-label">)</span>
-        </div>
-        <div class="pen-section">
-          <span class="pen-label">(</span>
-          <input class="pen-input" type="number" min="0" max="99" value="${m.p2 ?? ''}" placeholder="?" title="Penalties"
-            oninput="setKO('${stage}',${i},'p2',this.value)">
-          <span class="pen-label">)</span>
-        </div>`
-      : '<div></div><div></div>';
-
-    html += `<div class="ko-match">
+    const w1 = done && (s1 > s2 || (tied && !isNaN(p1) && !isNaN(p2) && p1 > p2));
+    const w2 = done && (s2 > s1 || (tied && !isNaN(p1) && !isNaN(p2) && p2 > p1));
+    return `<div class="ko-match">
       <div class="ko-match-label">${label}</div>
       <div class="ko-team-row ${w1 ? 'winner' : ''}">
         <div class="ko-team-name">
@@ -977,7 +1012,24 @@ function renderKO(stage, labels) {
       </div>
     </div>`;
   }
-  grid.innerHTML = html;
+
+  const groups = BRACKET_GROUPS[stage];
+  const halfSize = BRACKET_HALF_SIZE[stage];
+
+  function renderHalf(groupList) {
+    return groupList.map(idxs => {
+      const cards = idxs.map(i => matchCard(i)).join('');
+      const connector = idxs.length > 1 ? '<div class="bracket-connector"></div>' : '';
+      return `<div class="bracket-pair">${cards}${connector}</div>`;
+    }).join('');
+  }
+
+  const leftGroups = groups.slice(0, halfSize);
+  const rightGroups = groups.slice(halfSize);
+  grid.innerHTML = `<div class="bracket-section">
+    <div class="bracket-half">${renderHalf(leftGroups)}</div>
+    <div class="bracket-half">${renderHalf(rightGroups)}</div>
+  </div>`;
 }
 
 function renderFinal() {
