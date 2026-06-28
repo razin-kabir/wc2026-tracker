@@ -777,11 +777,6 @@ const THIRD_SLOTS = {
   15: ['D','E','I','J','L'],
 };
 
-// Official FIFA 2026 WC 3rd-place slot assignment (Annex C of tournament regulations).
-// Maps group letter → R32 slot index (0-based) for the actual qualifying groups.
-const OFFICIAL_3RD_SLOT = {
-  'A':7, 'B':8, 'D':3, 'E':5, 'F':6, 'G':12, 'I':9, 'L':15,
-};
 
 // Bracket advancement: for each match (stage, idx), where winner (w) and loser (l) go
 // R32→R16 mapping verified against official FIFA bracket (Wikipedia/CBS Sports):
@@ -1403,25 +1398,40 @@ function getStageLabels(stage) {
 // AUTO-FILL KNOCKOUT
 // ══════════════════════════════════════════════════════════
 function assign3rdToSlots(thirds) {
-  // thirds: array of {t, g} — the best 3rd-place teams in rank order
-  // Returns an object: {slotIndex: teamName}
+  // thirds: array of {t, g} — best 3rd-place teams in rank order (top 8 advance)
+  // Uses MRV backtracking: fill the most-constrained slot first so that
+  // groups with only one valid slot (K→9, L→15) always get placed correctly.
+  const qual = {};
+  for (const x of thirds.slice(0, 8)) {
+    if (x?.g && x?.t) qual[x.g] = x.t;
+  }
+
+  const slots = [3, 5, 6, 7, 8, 9, 12, 15];
   const assignment = {};
-  for (const x of thirds) {
-    if (!x?.g) continue;
-    const slot = OFFICIAL_3RD_SLOT[x.g];
-    if (slot !== undefined) {
-      assignment[slot] = x.t;
-    } else {
-      // Fallback for groups not in the official table: find first eligible open slot
-      const slots = [3, 5, 6, 7, 8, 9, 12, 15];
-      for (const s of slots) {
-        if (!assignment[s] && THIRD_SLOTS[s].includes(x.g)) {
-          assignment[s] = x.t;
-          break;
-        }
+  const used = new Set();
+
+  function solve(remaining) {
+    if (!remaining.length) return true;
+    // MRV: pick the slot with the fewest eligible qualifying groups still unplaced
+    const best = remaining.reduce((a, b) => {
+      const ca = THIRD_SLOTS[a].filter(g => g in qual && !used.has(g)).length;
+      const cb = THIRD_SLOTS[b].filter(g => g in qual && !used.has(g)).length;
+      return ca <= cb ? a : b;
+    });
+    const rest = remaining.filter(s => s !== best);
+    for (const g of THIRD_SLOTS[best]) {
+      if (g in qual && !used.has(g)) {
+        assignment[best] = qual[g];
+        used.add(g);
+        if (solve(rest)) return true;
+        delete assignment[best];
+        used.delete(g);
       }
     }
+    return false;
   }
+
+  solve(slots);
   return assignment;
 }
 
