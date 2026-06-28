@@ -725,31 +725,31 @@ const KO_COUNTS = { r32: 16, r16: 8, qf: 4, sf: 2 };
 const R32_LABELS = [
   '2A vs 2B',              // R32-1  Jun 28
   '1C vs 2F',              // R32-2  Jun 29
-  '1F vs 2C',              // R32-3  Jun 29
-  '1E vs 3rd(A/B/C/D/F)', // R32-4  Jun 29
+  '1E vs 3rd(A/B/C/D/F)', // R32-3  Jun 29
+  '1F vs 2C',              // R32-4  Jun 29
   '2E vs 2I',              // R32-5  Jun 30
-  '1A vs 3rd(C/E/F/H/I)', // R32-6  Jun 30
-  '1I vs 3rd(C/D/F/G/H)', // R32-7  Jun 30
-  '1G vs 3rd(A/E/H/I/J)', // R32-8  Jul 1
-  '1D vs 3rd(B/E/F/I/J)', // R32-9  Jul 1
-  '1L vs 3rd(E/H/I/J/K)', // R32-10 Jul 1
-  '2K vs 2L',              // R32-11 Jul 2
-  '1H vs 2J',              // R32-12 Jul 2
-  '1B vs 3rd(E/F/G/I/J)', // R32-13 Jul 2
+  '1I vs 3rd(C/D/F/G/H)', // R32-6  Jun 30
+  '1A vs 3rd(C/E/F/H/I)', // R32-7  Jun 30
+  '1L vs 3rd(E/H/I/J/K)', // R32-8  Jul 1
+  '1G vs 3rd(A/E/H/I/J)', // R32-9  Jul 1
+  '1D vs 3rd(B/E/F/I/J)', // R32-10 Jul 1
+  '1H vs 2J',              // R32-11 Jul 2
+  '1B vs 3rd(E/F/G/I/J)', // R32-12 Jul 2
+  '2K vs 2L',              // R32-13 Jul 2
   '2D vs 2G',              // R32-14 Jul 3
   '1J vs 2H',              // R32-15 Jul 3
   '1K vs 3rd(D/E/I/J/L)', // R32-16 Jul 3
 ];
 
 const R16_LABELS = [
-  'R32-4 W vs R32-7 W',    // R16-1  Jul 4  (1E/3rd vs 1I/3rd)
-  'R32-1 W vs R32-3 W',    // R16-2  Jul 4  (2A/2B vs 1F/2C)
+  'R32-3 W vs R32-6 W',    // R16-1  Jul 4  (1E/3rd vs 1I/3rd)
+  'R32-1 W vs R32-4 W',    // R16-2  Jul 4  (2A/2B vs 1F/2C)
   'R32-2 W vs R32-5 W',    // R16-3  Jul 5  (1C/2F vs 2E/2I)
-  'R32-6 W vs R32-10 W',   // R16-4  Jul 5  (1A/3rd vs 1L/3rd)
-  'R32-11 W vs R32-12 W',  // R16-5  Jul 6  (2K/2L vs 1H/2J)
-  'R32-9 W vs R32-8 W',    // R16-6  Jul 6  (1D/3rd vs 1G/3rd)
+  'R32-7 W vs R32-8 W',    // R16-4  Jul 5  (1A/3rd vs 1L/3rd)
+  'R32-13 W vs R32-11 W',  // R16-5  Jul 6  (2K/2L vs 1H/2J)
+  'R32-10 W vs R32-9 W',   // R16-6  Jul 6  (1D/3rd vs 1G/3rd)
   'R32-15 W vs R32-14 W',  // R16-7  Jul 7  (1J/2H vs 2D/2G)
-  'R32-13 W vs R32-16 W',  // R16-8  Jul 7  (1B/3rd vs 1K/3rd)
+  'R32-12 W vs R32-16 W',  // R16-8  Jul 7  (1B/3rd vs 1K/3rd)
 ];
 
 const QF_LABELS = [
@@ -767,33 +767,39 @@ const SF_LABELS = [
 // R32 slots that receive 3rd-place teams → eligible source groups
 // (slot indices 0-based, matching R32_LABELS order)
 const THIRD_SLOTS = {
-  3:  ['A','B','C','D','F'],
-  5:  ['C','E','F','H','I'],
-  6:  ['C','D','F','G','H'],
-  7:  ['A','E','H','I','J'],
-  8:  ['B','E','F','I','J'],
-  9:  ['E','H','I','J','K'],
-  12: ['E','F','G','I','J'],
-  15: ['D','E','I','J','L'],
+  2:  ['A','B','C','D','F'],   // R32-3:  1E vs 3rd
+  5:  ['C','D','F','G','H'],   // R32-6:  1I vs 3rd
+  6:  ['C','E','F','H','I'],   // R32-7:  1A vs 3rd
+  7:  ['E','H','I','J','K'],   // R32-8:  1L vs 3rd
+  8:  ['A','E','H','I','J'],   // R32-9:  1G vs 3rd
+  9:  ['B','E','F','I','J'],   // R32-10: 1D vs 3rd
+  11: ['E','F','G','I','J'],   // R32-12: 1B vs 3rd
+  15: ['D','E','I','J','L'],   // R32-16: 1K vs 3rd
+};
+
+// Official group→slot mapping (derived from FIFA Annex C / actual 2026 results)
+const OFFICIAL_3RD_SLOT = {
+  'B':  9, 'D':  2, 'E':  6, 'F':  5,
+  'I':  8, 'J': 11, 'K':  7, 'L': 15,
 };
 
 
 // Bracket advancement: for each match (stage, idx), where winner (w) and loser (l) go
-// R32→R16 mapping verified against official FIFA bracket (Wikipedia/CBS Sports):
-//   R16-1 (idx 0): R32-4 vs R32-7  |  R16-2 (idx 1): R32-1 vs R32-3
-//   R16-3 (idx 2): R32-2 vs R32-5  |  R16-4 (idx 3): R32-6 vs R32-10
-//   R16-5 (idx 4): R32-11 vs R32-12 | R16-6 (idx 5): R32-9 vs R32-8
-//   R16-7 (idx 6): R32-15 vs R32-14 | R16-8 (idx 7): R32-13 vs R32-16
+// R32→R16 mapping verified against official FIFA bracket (CBS Sports confirmed):
+//   R16-1 (idx 0): R32-3 vs R32-6  |  R16-2 (idx 1): R32-1 vs R32-4
+//   R16-3 (idx 2): R32-2 vs R32-5  |  R16-4 (idx 3): R32-7 vs R32-8
+//   R16-5 (idx 4): R32-13 vs R32-11 | R16-6 (idx 5): R32-10 vs R32-9
+//   R16-7 (idx 6): R32-15 vs R32-14 | R16-8 (idx 7): R32-12 vs R32-16
 const BRACKET_ADV = {
   r32: [
-    //  0:2A/2B       1:1C/2F       2:1F/2C       3:1E/3rd
-    {w:['r16',1,'t1']},{w:['r16',2,'t1']},{w:['r16',1,'t2']},{w:['r16',0,'t1']},
-    //  4:2E/2I       5:1A/3rd      6:1I/3rd      7:1G/3rd
-    {w:['r16',2,'t2']},{w:['r16',3,'t1']},{w:['r16',0,'t2']},{w:['r16',5,'t2']},
-    //  8:1D/3rd      9:1L/3rd      10:2K/2L      11:1H/2J
-    {w:['r16',5,'t1']},{w:['r16',3,'t2']},{w:['r16',4,'t1']},{w:['r16',4,'t2']},
-    //  12:1B/3rd     13:2D/2G      14:1J/2H      15:1K/3rd
-    {w:['r16',7,'t1']},{w:['r16',6,'t2']},{w:['r16',6,'t1']},{w:['r16',7,'t2']},
+    //  0:2A/2B       1:1C/2F       2:1E/3rd      3:1F/2C
+    {w:['r16',1,'t1']},{w:['r16',2,'t1']},{w:['r16',0,'t1']},{w:['r16',1,'t2']},
+    //  4:2E/2I       5:1I/3rd      6:1A/3rd      7:1L/3rd
+    {w:['r16',2,'t2']},{w:['r16',0,'t2']},{w:['r16',3,'t1']},{w:['r16',3,'t2']},
+    //  8:1G/3rd      9:1D/3rd      10:1H/2J      11:1B/3rd
+    {w:['r16',5,'t2']},{w:['r16',5,'t1']},{w:['r16',4,'t2']},{w:['r16',7,'t1']},
+    //  12:2K/2L      13:2D/2G      14:1J/2H      15:1K/3rd
+    {w:['r16',4,'t1']},{w:['r16',6,'t2']},{w:['r16',6,'t1']},{w:['r16',7,'t2']},
   ],
   r16: [
     {w:['qf',0,'t1']}, {w:['qf',0,'t2']}, {w:['qf',2,'t1']}, {w:['qf',2,'t2']},
@@ -811,7 +817,7 @@ const BRACKET_ADV = {
 // Bracket pair groupings: which match indices feed into the same next-round slot.
 // First BRACKET_HALF_SIZE[stage] groups go in the left column; the rest in the right.
 const BRACKET_GROUPS = {
-  r32: [[3,6],[0,2],[1,4],[5,9],  [10,11],[8,7],[14,13],[12,15]],
+  r32: [[2,5],[0,3],[1,4],[6,7],  [12,10],[9,8],[14,13],[11,15]],
   r16: [[0,1],[4,5],              [2,3],[6,7]],
   qf:  [[0,1],                   [2,3]],
   sf:  [[0],                     [1]],
@@ -827,10 +833,10 @@ const BRACKET_SOURCES = {
     [{s:'r16',i:2},{s:'r16',i:3}], [{s:'r16',i:6},{s:'r16',i:7}],
   ],
   r16: [
-    [{s:'r32',i:3}, {s:'r32',i:6}],  [{s:'r32',i:0}, {s:'r32',i:2}],
-    [{s:'r32',i:1}, {s:'r32',i:4}],  [{s:'r32',i:5}, {s:'r32',i:9}],
-    [{s:'r32',i:10},{s:'r32',i:11}], [{s:'r32',i:8}, {s:'r32',i:7}],
-    [{s:'r32',i:14},{s:'r32',i:13}], [{s:'r32',i:12},{s:'r32',i:15}],
+    [{s:'r32',i:2}, {s:'r32',i:5}],  [{s:'r32',i:0}, {s:'r32',i:3}],
+    [{s:'r32',i:1}, {s:'r32',i:4}],  [{s:'r32',i:6}, {s:'r32',i:7}],
+    [{s:'r32',i:12},{s:'r32',i:10}], [{s:'r32',i:9}, {s:'r32',i:8}],
+    [{s:'r32',i:14},{s:'r32',i:13}], [{s:'r32',i:11},{s:'r32',i:15}],
   ],
 };
 
@@ -1399,39 +1405,45 @@ function getStageLabels(stage) {
 // ══════════════════════════════════════════════════════════
 function assign3rdToSlots(thirds) {
   // thirds: array of {t, g} — best 3rd-place teams in rank order (top 8 advance)
-  // Uses MRV backtracking: fill the most-constrained slot first so that
-  // groups with only one valid slot (K→9, L→15) always get placed correctly.
   const qual = {};
   for (const x of thirds.slice(0, 8)) {
     if (x?.g && x?.t) qual[x.g] = x.t;
   }
 
-  const slots = [3, 5, 6, 7, 8, 9, 12, 15];
   const assignment = {};
   const used = new Set();
 
-  function solve(remaining) {
-    if (!remaining.length) return true;
-    // MRV: pick the slot with the fewest eligible qualifying groups still unplaced
-    const best = remaining.reduce((a, b) => {
-      const ca = THIRD_SLOTS[a].filter(g => g in qual && !used.has(g)).length;
-      const cb = THIRD_SLOTS[b].filter(g => g in qual && !used.has(g)).length;
-      return ca <= cb ? a : b;
-    });
-    const rest = remaining.filter(s => s !== best);
-    for (const g of THIRD_SLOTS[best]) {
-      if (g in qual && !used.has(g)) {
-        assignment[best] = qual[g];
-        used.add(g);
-        if (solve(rest)) return true;
-        delete assignment[best];
-        used.delete(g);
-      }
+  // Primary: use official slot table (FIFA Annex C / 2026 actual results)
+  for (const [g, team] of Object.entries(qual)) {
+    const slot = OFFICIAL_3RD_SLOT[g];
+    if (slot !== undefined && !(slot in assignment)) {
+      assignment[slot] = team;
+      used.add(g);
     }
-    return false;
   }
 
-  solve(slots);
+  // Fallback MRV for any qualifying group not covered by the official table
+  const allSlots = [2, 5, 6, 7, 8, 9, 11, 15];
+  const remGroups = Object.keys(qual).filter(g => !used.has(g));
+  if (remGroups.length) {
+    const remSlots = allSlots.filter(s => !(s in assignment));
+    function solve(sls, grps) {
+      if (!grps.length) return true;
+      const best = sls.reduce((a, b) =>
+        THIRD_SLOTS[a].filter(g => grps.includes(g)).length <=
+        THIRD_SLOTS[b].filter(g => grps.includes(g)).length ? a : b);
+      for (const g of THIRD_SLOTS[best]) {
+        if (grps.includes(g)) {
+          assignment[best] = qual[g];
+          if (solve(sls.filter(s => s !== best), grps.filter(x => x !== g))) return true;
+          delete assignment[best];
+        }
+      }
+      return false;
+    }
+    solve(remSlots, remGroups);
+  }
+
   return assignment;
 }
 
@@ -1448,22 +1460,22 @@ function autoFillKnockout() {
 
   // Official 2026 FIFA R32 bracket (16 matches in schedule order)
   const pairs = [
-    [r.A, r.B],              // R32-1:  2A vs 2B
-    [w.C, r.F],              // R32-2:  1C vs 2F
-    [w.F, r.C],              // R32-3:  1F vs 2C
-    [w.E, tp[3]||'3rd TBD'],  // R32-4:  1E vs 3rd(A/B/C/D/F)
-    [r.E, r.I],              // R32-5:  2E vs 2I
-    [w.A, tp[5]||'3rd TBD'],  // R32-6:  1A vs 3rd(C/E/F/H/I)
-    [w.I, tp[6]||'3rd TBD'],  // R32-7:  1I vs 3rd(C/D/F/G/H)
-    [w.G, tp[7]||'3rd TBD'],  // R32-8:  1G vs 3rd(A/E/H/I/J)
-    [w.D, tp[8]||'3rd TBD'],  // R32-9:  1D vs 3rd(B/E/F/I/J)
-    [w.L, tp[9]||'3rd TBD'],  // R32-10: 1L vs 3rd(E/H/I/J/K)
-    [r.K, r.L],              // R32-11: 2K vs 2L
-    [w.H, r.J],              // R32-12: 1H vs 2J
-    [w.B, tp[12]||'3rd TBD'], // R32-13: 1B vs 3rd(E/F/G/I/J)
-    [r.D, r.G],              // R32-14: 2D vs 2G
-    [w.J, r.H],              // R32-15: 1J vs 2H
-    [w.K, tp[15]||'3rd TBD'], // R32-16: 1K vs 3rd(D/E/I/J/L)
+    [r.A,  r.B],              // R32-1  Jun 28: 2A vs 2B
+    [w.C,  r.F],              // R32-2  Jun 29: 1C vs 2F
+    [w.E,  tp[2]||'3rd TBD'], // R32-3  Jun 29: 1E vs 3rd(A/B/C/D/F)
+    [w.F,  r.C],              // R32-4  Jun 29: 1F vs 2C
+    [r.E,  r.I],              // R32-5  Jun 30: 2E vs 2I
+    [w.I,  tp[5]||'3rd TBD'], // R32-6  Jun 30: 1I vs 3rd(C/D/F/G/H)
+    [w.A,  tp[6]||'3rd TBD'], // R32-7  Jun 30: 1A vs 3rd(C/E/F/H/I)
+    [w.L,  tp[7]||'3rd TBD'], // R32-8  Jul 1:  1L vs 3rd(E/H/I/J/K)
+    [w.G,  tp[8]||'3rd TBD'], // R32-9  Jul 1:  1G vs 3rd(A/E/H/I/J)
+    [w.D,  tp[9]||'3rd TBD'], // R32-10 Jul 1:  1D vs 3rd(B/E/F/I/J)
+    [w.H,  r.J],              // R32-11 Jul 2:  1H vs 2J
+    [w.B,  tp[11]||'3rd TBD'],// R32-12 Jul 2:  1B vs 3rd(E/F/G/I/J)
+    [r.K,  r.L],              // R32-13 Jul 2:  2K vs 2L
+    [r.D,  r.G],              // R32-14 Jul 3:  2D vs 2G
+    [w.J,  r.H],              // R32-15 Jul 3:  1J vs 2H
+    [w.K,  tp[15]||'3rd TBD'],// R32-16 Jul 3:  1K vs 3rd(D/E/I/J/L)
   ];
 
   // Reset all KO rounds (R32 regeneration invalidates downstream)
