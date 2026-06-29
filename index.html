@@ -1548,17 +1548,31 @@ async function fetchFromESPN() {
   status.className = 'info-text';
   status.textContent = 'Connecting to ESPN…';
 
-  const today   = new Date();
-  const dates   = [];
+  const today = new Date();
+  const dates = [];
   for (let d = new Date(_WC_START); d <= today; d.setDate(d.getDate() + 1)) {
     dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
   }
 
-  let nResults = 0, nCards = 0, errors = 0;
+  let nResults = 0, nKO = 0, nCards = 0, errors = 0;
 
-  // Keep existing KO data; only reset group scores + cards so re-fetch is idempotent
+  // Reset group scores + cards; KO results are overwritten below as they're found
   S.groups = {};
   S.cards  = {};
+
+  // Find which KO slot (stage, idx) a pair of team names currently occupies.
+  // Processes stages in order so R16+ slots are populated after R32 results are written.
+  function findKOSlot(a, b) {
+    for (const st of ['r32','r16','qf','sf','final','third']) {
+      for (let i = 0; i < S.ko[st].length; i++) {
+        const m = S.ko[st][i];
+        if (!m.t1 || !m.t2) continue;
+        if (m.t1 === a && m.t2 === b) return { stage: st, idx: i, flip: false };
+        if (m.t1 === b && m.t2 === a) return { stage: st, idx: i, flip: true  };
+      }
+    }
+    return null;
+  }
 
   for (const dateStr of dates) {
     try {
@@ -1569,41 +1583,54 @@ async function fetchFromESPN() {
         const comp = ev.competitions?.[0];
         if (!comp?.status?.type?.completed) continue;
 
-        const comps  = comp.competitors || [];
-        const homeC  = comps.find(c => c.homeAway === 'home');
-        const awayC  = comps.find(c => c.homeAway === 'away');
+        const comps = comp.competitors || [];
+        const homeC = comps.find(c => c.homeAway === 'home');
+        const awayC = comps.find(c => c.homeAway === 'away');
         if (!homeC || !awayC) continue;
 
         const home = _normName(homeC.team.displayName);
         const away = _normName(awayC.team.displayName);
         const hs   = parseInt(homeC.score ?? '');
         const as_  = parseInt(awayC.score ?? '');
+        if (isNaN(hs) || isNaN(as_)) continue;
 
-        // Match result → S.groups
-        if (!isNaN(hs) && !isNaN(as_)) {
-          const g = _MATCH_TO_GROUP[`${home}|${away}`];
-          if (g) {
-            const fixtures = GROUP_FIXTURES[g];
-            const teams    = GROUPS[g];
-            const idx      = fixtures.findIndex(([i1, i2]) =>
-              teams[i1] === home && teams[i2] === away);
-            if (idx !== -1) {
-              S.groups[`${g}_${idx}`] = [String(hs), String(as_)];
-              nResults++;
-            }
+        // ── Group stage result ───────────────────────────────────────
+        const g = _MATCH_TO_GROUP[`${home}|${away}`];
+        if (g) {
+          const idx = GROUP_FIXTURES[g].findIndex(([i1, i2]) =>
+            GROUPS[g][i1] === home && GROUPS[g][i2] === away);
+          if (idx !== -1) {
+            S.groups[`${g}_${idx}`] = [String(hs), String(as_)];
+            nResults++;
           }
-        }
-
-        // Cards → S.cards
-        const idToName = { [homeC.id]: home, [awayC.id]: away };
-        const matchFP  = _parseCards(comp.details || [], idToName);
-        const g2       = _MATCH_TO_GROUP[`${home}|${away}`];
-        if (g2) {
-          for (const [team, fp] of Object.entries(matchFP)) {
-            const key = `${g2}_${team}`;
+          // Cards (group stage only)
+          const idToName = { [homeC.id]: home, [awayC.id]: away };
+          for (const [team, fp] of Object.entries(_parseCards(comp.details || [], idToName))) {
+            const key = `${g}_${team}`;
             if (!S.cards[key]) S.cards[key] = { yc: 0, irc: 0, rc: 0, yrc: 0 };
-            for (const k of ['yc', 'irc', 'rc', 'yrc']) S.cards[key][k] += fp[k];
+            for (const k of ['yc','irc','rc','yrc']) S.cards[key][k] += fp[k];
             nCards += fp.yc + fp.irc + fp.rc + fp.yrc;
+          }
+
+        // ── Knockout result ──────────────────────────────────────────
+        } else {
+          const slot = findKOSlot(home, away);
+          if (slot) {
+            const { stage, idx, flip } = slot;
+            const m  = S.ko[stage][idx];
+            const s1 = flip ? as_ : hs;
+            const s2 = flip ? hs  : as_;
+
+            // Penalty shootout scores (ESPN field: shootoutScore)
+            const hp     = parseFloat(homeC.shootoutScore ?? 'x');
+            const ap     = parseFloat(awayC.shootoutScore ?? 'x');
+            const hasPen = !isNaN(hp) && !isNaN(ap);
+
+            m.s1 = String(s1);  m.s2 = String(s2);
+            m.p1 = hasPen ? String(flip ? ap : hp) : '';
+            m.p2 = hasPen ? String(flip ? hp : ap) : '';
+            advanceBracket(stage, idx);
+            nKO++;
           }
         }
       }
@@ -1613,17 +1640,18 @@ async function fetchFromESPN() {
   }
 
   save();
-  renderGroups();
+  // Re-render whatever stage is currently on screen
+  const cur = STAGES.find(s => (document.getElementById(`sect-${s}`)?.style.display ?? 'none') !== 'none');
+  renderStage(cur || 'groups');
+
   btn.disabled = false;
   btn.textContent = '⬇ Auto-fill from ESPN';
 
-  if (errors === 0) {
-    status.className = 'info-text ok';
-    status.textContent = `✓ ${nResults} result(s) + ${nCards} card event(s) loaded`;
-  } else {
-    status.className = 'info-text err';
-    status.textContent = `${nResults} result(s) loaded (${errors} date(s) failed)`;
-  }
+  const parts = [`${nResults} group result(s)`];
+  if (nKO)    parts.push(`${nKO} KO result(s)`);
+  if (nCards) parts.push(`${nCards} card event(s)`);
+  status.className = errors ? 'info-text err' : 'info-text ok';
+  status.textContent = `${errors ? '⚠' : '✓'} ${parts.join(' + ')} loaded${errors ? ` (${errors} date(s) failed)` : ''}`;
 }
 
 // ══════════════════════════════════════════════════════════
