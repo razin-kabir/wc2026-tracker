@@ -1478,13 +1478,55 @@ function autoFillKnockout() {
     [w.K,  tp[15]||'3rd TBD'],// R32-16 Jul 3:  1K vs 3rd(D/E/I/J/L)
   ];
 
-  // Reset all KO rounds (R32 regeneration invalidates downstream)
-  S.ko.r32   = pairs.map(([t1, t2]) => ({t1:t1||'', t2:t2||'', s1:'', s2:'', p1:'', p2:''}));
+  // Save existing scores keyed by sorted team pair so they survive a team-name reshuffle
+  const savedByPair = {};
+  for (const st of ['r32','r16','qf','sf','final','third']) {
+    for (const m of S.ko[st]) {
+      if (m.t1 && m.t2 && m.s1 !== '') {
+        const key = [m.t1, m.t2].sort().join('\x00');
+        savedByPair[key] = { t1: m.t1, s1: m.s1, s2: m.s2, p1: m.p1||'', p2: m.p2||'' };
+      }
+    }
+  }
+
+  // Restore scores from saved data (handles both same-order and flipped team pairs)
+  function restoreScores(m) {
+    if (!m.t1 || !m.t2) return;
+    const sv = savedByPair[[m.t1, m.t2].sort().join('\x00')];
+    if (!sv) return;
+    const flip = sv.t1 === m.t2;
+    m.s1 = flip ? sv.s2 : sv.s1;  m.s2 = flip ? sv.s1 : sv.s2;
+    m.p1 = flip ? sv.p2 : sv.p1;  m.p2 = flip ? sv.p1 : sv.p2;
+  }
+
+  // Rebuild R32 with new team names, restoring any existing scores
+  S.ko.r32 = pairs.map(([t1, t2]) => {
+    const m = { t1: t1||'', t2: t2||'', s1:'', s2:'', p1:'', p2:'' };
+    restoreScores(m);
+    return m;
+  });
+
+  // Reset downstream rounds, then re-propagate in stage order
   S.ko.r16   = emptyKO(8);
   S.ko.qf    = emptyKO(4);
   S.ko.sf    = emptyKO(2);
   S.ko.final = emptyKO(1);
   S.ko.third = emptyKO(1);
+
+  // R32 → fill R16 team names (and scores where R32 results exist)
+  for (let i = 0; i < 16; i++) advanceBracket('r32', i);
+
+  // Restore R16/QF/SF scores, then re-propagate each so the next round gets team names
+  for (const st of ['r16', 'qf', 'sf']) {
+    for (let i = 0; i < S.ko[st].length; i++) {
+      restoreScores(S.ko[st][i]);
+      if (S.ko[st][i].s1 !== '') advanceBracket(st, i);
+    }
+  }
+  // Final and 3rd place — just restore scores (no further propagation needed)
+  restoreScores(S.ko.final[0]);
+  restoreScores(S.ko.third[0]);
+
   save();
   showStage('r32');
 }
